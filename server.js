@@ -54,7 +54,23 @@ app.post("/api/signup", async (req, res) => {
     } catch (error) {
         console.error(error);
     }
-})
+});
+
+app.post("/api/login", async (req, res) => {
+    try {
+        console.log(req.body);
+        const { idToken } = req.body;
+
+        const decodedToken = await auth.verifyIdToken(idToken);
+        const {uid, email} = decodedToken;
+
+        const jwtToken = jwt.sign({uid, email}, process.env.JWT_SECRET, {expiresIn: '1h'});
+
+        res.json({token: jwtToken});
+    } catch (error) {
+        console.error(error);
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server started on ${PORT}`);
