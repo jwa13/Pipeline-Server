@@ -80,7 +80,12 @@ app.post("/api/login", async (req, res) => {
         const decodedToken = await auth.verifyIdToken(idToken);
         const {uid, email} = decodedToken;
 
-        const jwtToken = jwt.sign({uid, email}, process.env.JWT_SECRET, {expiresIn: '1h'});
+        const userRef = admin.firestore().collection("users").doc(decodedToken.uid);
+        const doc = await userRef.get();
+        const accType = doc.data().accType;
+        console.log(accType);
+
+        const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
         res.json({token: jwtToken});
     } catch (error) {
