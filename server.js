@@ -49,6 +49,25 @@ app.get("/api/database", async (req, res) => {
     }
 });
 
+app.get("/api/profile", verifyToken, async (req, res) => {
+    try {
+        const userRef = admin.firestore().collection("users").doc(req.decodedToken.uid);
+        const doc = await userRef.get();
+
+        const testRef = admin.firestore().collection("users").doc(req.decodedToken.uid).collection("goals");
+        const doctest = await testRef.get();
+        let hasGoals = false;
+        if(doctest.size > 0) {
+            hasGoals = true;
+        }
+        
+        const userData = doc.data();
+        res.status(200).json({...userData, hasGoals: hasGoals});
+    } catch (error) {
+        console.error(error);
+    }
+})
+
 app.post("/api/signup", async (req, res) => {
     try {
         console.log(req.body);
