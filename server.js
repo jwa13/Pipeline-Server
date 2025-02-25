@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const jwt = require("jsonwebtoken");
+const { doc } = require("firebase/firestore");
 require("dotenv").config();
 
 
@@ -66,7 +67,24 @@ app.get("/api/profile", verifyToken, async (req, res) => {
     } catch (error) {
         console.error(error);
     }
-})
+});
+
+app.get("/api/athletes", verifyToken, async (req, res) => {
+    try {
+        console.log("made it to the route");
+        const usersRef = admin.firestore().collection("users");
+        const snapshot = await usersRef.where('accType', '==', 'athlete').get();
+        const athletes = [];
+        snapshot.forEach(doc => {
+            let athlete = {label: doc.data().firstName + ' ' + doc.data().lastName, value: doc.id}
+            athletes.push(athlete);
+        });
+        res.status(200).json({athletes});
+        console.log(athletes);
+    } catch (error) {
+        console.error(error);
+    }
+});
 
 app.post("/api/signup", async (req, res) => {
     try {
@@ -158,7 +176,8 @@ app.post("/api/newAcc", verifyToken, async (req, res) => {
         }
 
         await userRef.update(updateData);
-        res.status(200);
+        console.log("update successful")
+        res.status(200).json({message: "Form accepted"});
 
     } catch (error) {
         console.error(error);
