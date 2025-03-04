@@ -86,6 +86,33 @@ app.get("/api/athletes", verifyToken, async (req, res) => {
     }
 });
 
+app.get("/api/goals", verifyToken, async (req, res) => {
+    try {
+        const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('goals');
+        const snapshot = await userRef.get();
+        
+        const active = [];
+        const inactive = [];
+
+        if(snapshot.empty) {
+            res.status(200).json({message: "no goals"});
+        } else {
+            snapshot.forEach(doc => {
+                if(doc.data().active == true) {
+                    let goal = doc.data();
+                    active.push(goal);
+                } else if(doc.data().active == false) {
+                    let goal = doc.data();
+                    inactive.push(goal);
+                }
+            });
+            res.status(200).json({active, inactive});
+        }
+    } catch (error) {
+        console.error(error);
+    }
+})
+
 app.post("/api/signup", async (req, res) => {
     try {
         console.log(req.body);
@@ -179,6 +206,24 @@ app.post("/api/newAcc", verifyToken, async (req, res) => {
         console.log("update successful")
         res.status(200).json({message: "Form accepted"});
 
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+app.post("/api/newGoal", verifyToken, async (req, res) => {
+    try {
+        console.log(req.body);
+        const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('goals');
+        let newGoal = {
+            type: req.body.type.value,
+            content: req.body.content,
+            targetCompletion: req.body.targetCompletion,
+            dateCreated: req.body.dateCreated,
+            active: true
+        }
+        await userRef.add(newGoal);
+        res.status(200).json({message: "Form accepted"});
     } catch (error) {
         console.error(error);
     }
