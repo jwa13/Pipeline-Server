@@ -56,14 +56,20 @@ app.get("/api/profile", verifyToken, async (req, res) => {
         const doc = await userRef.get();
 
         const testRef = admin.firestore().collection("users").doc(req.decodedToken.uid).collection("goals");
+        const healthRef = admin.firestore().collection("users").doc(req.decodedToken.uid).collection("health");
+        const healthTest = await healthRef.get()
         const doctest = await testRef.get();
         let hasGoals = false;
         if(doctest.size > 0) {
             hasGoals = true;
         }
+        let hasHealth = false;
+        if(healthTest.size > 0) {
+            hasHealth = true;
+        }
         
         const userData = doc.data();
-        res.status(200).json({...userData, hasGoals: hasGoals});
+        res.status(200).json({...userData, hasGoals: hasGoals, hasHealth: hasHealth});
     } catch (error) {
         console.error(error);
     }
