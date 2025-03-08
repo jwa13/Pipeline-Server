@@ -229,6 +229,91 @@ app.post("/api/newGoal", verifyToken, async (req, res) => {
     }
 });
 
+app.post("/api/newReport", verifyToken, async (req, res) => {
+    try {
+        console.log(req.body);
+        const coachRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
+        const athleteRef = admin.firestore().collection('users').doc(req.body.athleteUid).collection('reports');
+
+        let newReport = { athleteUid: req.body.athleteUid, reportType: req.body.reportType, dateCreated: new Date().toISOString(), coachUid: req.decodedToken.uid }
+        switch (req.body.reportType) {
+            case 'hitting':
+                newReport = {
+                    ...newReport,
+                    loadRatings: req.body.loadRatings,
+                    swingRatings: req.body.swingRatings,
+                    evTee: req.body.evTee,
+                    distanceTee: req.body.distanceTee,
+                    evFrontToss: req.body.evFrontToss,
+                    distanceFrontToss: req.body.distanceFrontToss,
+                    swingNotes: req.body.swingNotes,
+                }
+                break;
+            case 'pitching':
+                if (req.body.ratings) {
+                    newReport = {
+                        ...newReport,
+                        ratings: req.body.ratings,
+                    }
+                }
+                if (req.body.mechRatings) {
+                    newReport = {
+                        ...newReport,
+                        mechRatings: req.body.mechRatings,
+                        mechComments: req.body.mechComments,
+                    }
+                }
+                if (req.body.pitchMetricsChecked) {
+                    // add pitch data after turned into array
+                }
+                break;
+            case 'strength':
+                newReport = {
+                    lowerBody: req.body.lowerBodyRatings,
+                    upperBody: req.body.upperBodyRatings,
+                    fullBodyROM: req.body.fullBodyROM,
+                    posturalAssessment: req.body.posturalAssesment,
+                }
+                break;
+            case 'skills':
+                newReport = {
+                    infieldRatings: req.body.infieldRatings,
+                    infieldNotes: req.body.infieldNotes,
+                    outfieldRatings: req.body.outfieldRatings,
+                    outfieldNotes: req.body.outfieldNotes,
+                    throwingRatings: req.body.throwingRatings,
+                    throwingNotes: req.body.throwingNotes,
+                    hittingRatings: req.body.hittingRatings,
+                    hittingNotes: req.body.hittingNotes,
+                }
+                if (pitchingNotes) {
+                    newReport = {
+                        ...newReport,
+                        pitchingRatings: req.body.pitchingRatings,
+                        pitchingNotes: req.body.pitchingNotes
+                    }
+                    // add pitch data after turned into an array
+                }
+                if (catchingNotes) {
+                    newReport = {
+                        ...newReport,
+                        catchingRatings: req.body.catchingRatings,
+                        catchingNotes: req.body.catchingNotes,
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        const docID = crypto.randomUUID();
+        await coachRef.doc(docID).set(newReport);
+        await athleteRef.doc(docID).set(newReport);
+        res.status(200).json({message: "Form accepted"});
+    } catch (error) {
+        console.error(error);
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server started on ${PORT}`);
 });
