@@ -273,6 +273,7 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                 break;
             case 'strength':
                 newReport = {
+                    ...newReport,
                     lowerBody: req.body.lowerBodyRatings,
                     upperBody: req.body.upperBodyRatings,
                     fullBodyROM: req.body.fullBodyROM,
@@ -281,6 +282,7 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                 break;
             case 'skills':
                 newReport = {
+                    ...newReport,
                     infieldRatings: req.body.infieldRatings,
                     infieldNotes: req.body.infieldNotes,
                     outfieldRatings: req.body.outfieldRatings,
