@@ -56,15 +56,13 @@ app.get("/api/profile", verifyToken, async (req, res) => {
         const doc = await userRef.get();
 
         const testRef = admin.firestore().collection("users").doc(req.decodedToken.uid).collection("goals");
-        const healthRef = admin.firestore().collection("users").doc(req.decodedToken.uid).collection("health");
-        const healthTest = await healthRef.get()
         const doctest = await testRef.get();
         let hasGoals = false;
         if(doctest.size > 0) {
             hasGoals = true;
         }
         let hasHealth = false;
-        if(healthTest.size > 0) {
+        if(doc.data().healthInfo) {
             hasHealth = true;
         }
         
@@ -317,6 +315,39 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
         res.status(200).json({message: "Form accepted"});
     } catch (error) {
         console.error(error);
+    }
+});
+
+app.post("/api/newHealth", verifyToken, async (req, res) => {
+    try{
+        console.log(req.body);
+        const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid);
+        let healthInfo = {
+            emContact: {
+                name: req.body.name,
+                phone: req.body.phone,
+                relation: req.body.relation
+            },
+            surgery: req.body.surgery,
+            injury: req.body.injury,
+            heart: req.body.heart,
+            restricted: req.body.restricted,
+            breath: req.body.restricted,
+            pastConditions: req.body.pastConditions,
+            currentConditions: req.body.currentConditions,
+        }
+        if(req.body.surgery === 'true') {
+            healthInfo = {
+                ...healthInfo,
+                surgeryDetails: req.body.surgeryDetails,
+            }
+        }
+        await userRef.update({healthInfo: healthInfo});
+        console.log('health info post success');
+        res.status(200).json({message: 'Form accepted'});
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({message: 'Database or server error'});
     }
 });
 
