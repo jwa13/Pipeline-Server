@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const admin = require("firebase-admin");
 const jwt = require("jsonwebtoken");
-const { doc } = require("firebase/firestore");
 require("dotenv").config();
 
 
@@ -35,8 +34,46 @@ const verifyToken = async (req, res, next) => {
     }
 }
 
-app.get("/api/home", (req, res) => {
-    res.json({ message: "Hello World" });
+app.get("/api/home", verifyToken, async (req, res) => {
+    try {
+        const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid);
+        const doc = await userRef.get();
+
+        if (doc.data().accType === 'athlete') {
+            const goalRef = userRef.collection('goals');
+            const q = goalRef.where('active', '==', true);
+            const goalSnapshot = await q.get();
+            const goals = [];
+            goalSnapshot.forEach((goal) => {
+                goals.push(goal.data());
+            });
+
+            const reportRef = userRef.collection('reports');
+            const qr = reportRef.orderBy("dateCreated", "desc").limit(1);
+            const snapshot = await qr.get();
+
+            const orderedReports = [];
+            snapshot.forEach((report) => {
+                orderedReports.push(report.data());
+            });
+
+            const hasHealth = false;
+            if(doc.data().healthInfo) {
+                hasHealth = true;
+            }
+
+            const data = {
+                goals: goals,
+                orderedReports: orderedReports,
+                health: hasHealth,
+            }
+
+            res.status(200).json({data});
+        }
+
+    } catch(error) {
+        console.error(error);
+    }
 });
 
 app.get("/api/database", async (req, res) => {
