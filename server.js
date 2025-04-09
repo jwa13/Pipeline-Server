@@ -365,15 +365,15 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                     hittingRatings: req.body.hittingRatings,
                     hittingNotes: req.body.hittingNotes,
                 }
-                if (pitchingNotes) {
+                if (req.body.pitchingNotes) {
                     newReport = {
                         ...newReport,
                         pitchingRatings: req.body.pitchingRatings,
-                        pitchingNotes: req.body.pitchingNotes
+                        pitchingNotes: req.body.pitchingNotes,
+                        pitchMetrics: req.body.pitchMetrics,
                     }
-                    // add pitch data after turned into an array
                 }
-                if (catchingNotes) {
+                if (req.body.catchingNotes) {
                     newReport = {
                         ...newReport,
                         catchingRatings: req.body.catchingRatings,
