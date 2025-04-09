@@ -52,10 +52,18 @@ app.get("/api/home", verifyToken, async (req, res) => {
             const qr = reportRef.orderBy("dateCreated", "desc").limit(1);
             const snapshot = await qr.get();
 
-            const orderedReports = [];
-            snapshot.forEach((report) => {
-                orderedReports.push(report.data());
-            });
+            let athleteName = "";
+            let coachName = "";
+
+            const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
+            const doc = await athleteRef.get();
+            athleteName = doc.data().firstName + " " + doc.data().lastName;
+
+            const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
+            const doc2 = await coachRef.get();
+            coachName = doc2.data().firstName + " " + doc2.data().lastName;
+
+            const recentReport = {report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName};
 
             const hasHealth = false;
             if(doc.data().healthInfo) {
@@ -64,7 +72,7 @@ app.get("/api/home", verifyToken, async (req, res) => {
 
             const data = {
                 goals: goals,
-                orderedReports: orderedReports,
+                recentReport: recentReport,
                 health: hasHealth,
             }
 
@@ -152,7 +160,31 @@ app.get("/api/goals", verifyToken, async (req, res) => {
     } catch (error) {
         console.error(error);
     }
-})
+});
+
+app.get("/api/recentReport", verifyToken, async (req, res) => {
+    try {
+        const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
+        const query = userRef.orderBy('dateCreated', 'desc').limit(1);
+        const snapshot = await query.get();
+
+        let athleteName = "";
+        let coachName = "";
+
+        const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
+        const doc = await athleteRef.get();
+        athleteName = doc.data().firstName + " " + doc.data().lastName;
+
+        const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
+        const doc2 = await coachRef.get();
+        coachName = doc2.data().firstName + " " + doc2.data().lastName;
+
+        const recentReport = {report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName};
+        res.status(200).json({recentReport});
+    } catch (error) {
+        console.error(error);
+    }
+});
 
 app.post("/api/signup", async (req, res) => {
     try {
@@ -291,6 +323,7 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                 }
                 break;
             case 'pitching':
+                console.log(req.body);
                 if (req.body.ratings) {
                     newReport = {
                         ...newReport,
@@ -304,8 +337,11 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                         mechComments: req.body.mechComments,
                     }
                 }
-                if (req.body.pitchMetricsChecked) {
-                    // add pitch data after turned into array
+                if (req.body.pitchMetrics) {
+                    newReport = {
+                        ...newReport,
+                        pitchMetrics: req.body.pitchMetrics,
+                    }
                 }
                 break;
             case 'strength':
