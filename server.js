@@ -65,7 +65,7 @@ app.get("/api/home", verifyToken, async (req, res) => {
 
             const recentReport = {report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName};
 
-            const hasHealth = false;
+            let hasHealth = false;
             if(doc.data().healthInfo) {
                 hasHealth = true;
             }
