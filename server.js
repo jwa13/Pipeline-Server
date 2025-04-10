@@ -186,6 +186,42 @@ app.get("/api/recentReport", verifyToken, async (req, res) => {
     }
 });
 
+app.get("/api/allReports", verifyToken, async (req, res) => {
+    try {
+        const targetRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
+        const query = targetRef.orderBy('dateCreated', 'desc');
+        const snapshot = await query.get();
+
+        const reportProcessing = snapshot.docs.map(async (doc) => {
+            const reportData = doc.data();
+            let athleteName = "";
+            let coachName = "";
+
+            const athleteRef = admin.firestore().collection('users').doc(reportData.athleteUid);
+            const athleteDoc = await athleteRef.get();
+            athleteName = athleteDoc.data().firstName + " " + athleteDoc.data().lastName;
+
+            const coachRef = admin.firestore().collection('users').doc(reportData.coachUid);
+            const coachDoc = await coachRef.get();
+            coachName = coachDoc.data().firstName + " " + coachDoc.data().lastName;
+
+            const reportId = doc.id;
+
+            return {
+                report: reportData,
+                athleteName: athleteName,
+                coachName: coachName,
+                reportId: reportId
+            };
+        });
+        const reports = await Promise.all(reportProcessing);
+        res.status(200).json(reports);
+    } catch (error) {
+        console.error(error);
+        res.status(500);
+    }
+});
+
 app.post("/api/signup", async (req, res) => {
     try {
         console.log(req.body);
