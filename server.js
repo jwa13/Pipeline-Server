@@ -120,7 +120,7 @@ app.get("/api/profile", verifyToken, async (req, res) => {
 
 app.get("/api/athletes", verifyToken, async (req, res) => {
     try {
-        console.log("made it to the route");
+        // console.log("made it to the route");
         const usersRef = admin.firestore().collection("users");
         const snapshot = await usersRef.where('accType', '==', 'athlete').get();
         const athletes = [];
@@ -129,7 +129,7 @@ app.get("/api/athletes", verifyToken, async (req, res) => {
             athletes.push(athlete);
         });
         res.status(200).json({athletes});
-        console.log(athletes);
+        // console.log(athletes);
     } catch (error) {
         console.error(error);
     }
@@ -222,9 +222,73 @@ app.get("/api/allReports", verifyToken, async (req, res) => {
     }
 });
 
+app.get("/api/athlete-info/:athleteId", verifyToken, async (req, res) => {
+    try {
+        const athleteId = req.params.athleteId;
+        const athleteRef = admin.firestore().collection('users').doc(athleteId);
+        const doc = await athleteRef.get();
+
+        const athleteGoalsRef = athleteRef.collection('goals');
+        const snapshot = await athleteGoalsRef.get();
+        const active = [];
+        const inactive = [];
+        const hasGoals = (true);
+        if(snapshot.empty) {
+            hasGoals = false;
+        } else {
+            snapshot.forEach(doc => {
+                if(doc.data().active == true) {
+                    let goal = doc.data();
+                    active.push(goal);
+                } else if(doc.data().active == false) {
+                    let goal = doc.data();
+                    inactive.push(goal);
+                }
+            })
+        }
+
+        const athleteReportRef = athleteRef.collection('reports');
+        const query = athleteReportRef.orderBy('dateCreated', 'desc');
+        const reportSnapshot = await query.get();
+        const reportProcessing = reportSnapshot.docs.map(async (doc) => {
+            const reportData = doc.data();
+            let athleteName = "";
+            let coachName = "";
+
+            const athleteRef = admin.firestore().collection('users').doc(reportData.athleteUid);
+            const athleteDoc = await athleteRef.get();
+            athleteName = athleteDoc.data().firstName + " " + athleteDoc.data().lastName;
+
+            const coachRef = admin.firestore().collection('users').doc(reportData.coachUid);
+            const coachDoc = await coachRef.get();
+            coachName = coachDoc.data().firstName + " " + coachDoc.data().lastName;
+
+            const reportId = doc.id;
+
+            return {
+                report: reportData,
+                athleteName: athleteName,
+                coachName: coachName,
+                reportId: reportId
+            };
+        });
+        const reports = await Promise.all(reportProcessing);
+
+        let responseData = {profileData: doc.data(), reports: reports};
+        if(hasGoals) {
+            responseData.goals = {active, inactive};
+        }
+
+        res.status(200).json(responseData);
+    } catch (error) {
+        console.error(error);
+        res.status(500);
+    }
+});
+
 app.post("/api/signup", async (req, res) => {
     try {
-        console.log(req.body);
+        // console.log(req.body);
         const { idToken } = req.body;
 
         const decodedToken = await auth.verifyIdToken(idToken);
@@ -247,7 +311,7 @@ app.post("/api/signup", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
     try {
-        console.log(req.body);
+        // console.log(req.body);
         const { idToken } = req.body;
 
         const decodedToken = await auth.verifyIdToken(idToken);
@@ -256,7 +320,7 @@ app.post("/api/login", async (req, res) => {
         const userRef = admin.firestore().collection("users").doc(decodedToken.uid);
         const doc = await userRef.get();
         const accType = doc.data().accType;
-        console.log(accType);
+        // console.log(accType);
 
         const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
@@ -312,7 +376,7 @@ app.post("/api/newAcc", verifyToken, async (req, res) => {
         }
 
         await userRef.update(updateData);
-        console.log("update successful")
+        // console.log("update successful")
         res.status(200).json({message: "Form accepted"});
 
     } catch (error) {
@@ -322,7 +386,7 @@ app.post("/api/newAcc", verifyToken, async (req, res) => {
 
 app.post("/api/newGoal", verifyToken, async (req, res) => {
     try {
-        console.log(req.body);
+        // console.log(req.body);
         const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('goals');
         let newGoal = {
             type: req.body.type.value,
@@ -340,7 +404,7 @@ app.post("/api/newGoal", verifyToken, async (req, res) => {
 
 app.post("/api/newReport", verifyToken, async (req, res) => {
     try {
-        console.log(req.body);
+        // console.log(req.body);
         const coachRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
         const athleteRef = admin.firestore().collection('users').doc(req.body.athleteUid).collection('reports');
 
@@ -359,7 +423,7 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
                 }
                 break;
             case 'pitching':
-                console.log(req.body);
+                // console.log(req.body);
                 if (req.body.ratings) {
                     newReport = {
                         ...newReport,
@@ -431,7 +495,7 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
 
 app.post("/api/newHealth", verifyToken, async (req, res) => {
     try{
-        console.log(req.body);
+        // console.log(req.body);
         const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid);
         let healthInfo = {
             emContact: {
@@ -454,7 +518,7 @@ app.post("/api/newHealth", verifyToken, async (req, res) => {
             }
         }
         await userRef.update({healthInfo: healthInfo});
-        console.log('health info post success');
+        // console.log('health info post success');
         res.status(200).json({message: 'Form accepted'});
     } catch (error) {
         console.error(error);
