@@ -232,7 +232,7 @@ app.get("/api/athlete-info/:athleteId", verifyToken, async (req, res) => {
         const snapshot = await athleteGoalsRef.get();
         const active = [];
         const inactive = [];
-        const hasGoals = (true);
+        let hasGoals = (true);
         if(snapshot.empty) {
             hasGoals = false;
         } else {
@@ -408,7 +408,19 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
         const coachRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
         const athleteRef = admin.firestore().collection('users').doc(req.body.athleteUid).collection('reports');
 
-        let newReport = { athleteUid: req.body.athleteUid, reportType: req.body.reportType, dateCreated: new Date().toISOString(), coachUid: req.decodedToken.uid }
+        const athleteAcc = admin.firestore().collection('users').doc(req.body.athleteUid);
+        const doc = await athleteAcc.get();
+        const dateOfBirth = new Date(doc.data().DOB);
+        const today = new Date();
+
+        let age = today.getFullYear() - dateOfBirth.getFullYear();
+        const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+
+        if(monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+            age--
+        }
+
+        let newReport = { athleteUid: req.body.athleteUid, reportType: req.body.reportType, dateCreated: new Date().toISOString(), coachUid: req.decodedToken.uid, athleteAge: age }
         switch (req.body.reportType) {
             case 'hitting':
                 newReport = {
