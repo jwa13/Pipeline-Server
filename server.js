@@ -52,21 +52,24 @@ app.get("/api/home", verifyToken, async (req, res) => {
             const qr = reportRef.orderBy("dateCreated", "desc").limit(1);
             const snapshot = await qr.get();
 
-            let athleteName = "";
-            let coachName = "";
+            let recentReport = null;
 
-            const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
-            const doc = await athleteRef.get();
-            athleteName = doc.data().firstName + " " + doc.data().lastName;
+            if (snapshot.docs.length > 0) {
+                let athleteName = "";
+                let coachName = "";
 
-            const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
-            const doc2 = await coachRef.get();
-            coachName = doc2.data().firstName + " " + doc2.data().lastName;
+                const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
+                const doc = await athleteRef.get();
+                athleteName = doc.data().firstName + " " + doc.data().lastName;
 
-            const recentReport = {report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName};
+                const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
+                const doc2 = await coachRef.get();
+                coachName = doc2.data().firstName + " " + doc2.data().lastName;
 
+                recentReport = { report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName };
+            }
             let hasHealth = false;
-            if(doc.data().healthInfo) {
+            if (doc.data().healthInfo) {
                 hasHealth = true;
             }
 
@@ -76,10 +79,11 @@ app.get("/api/home", verifyToken, async (req, res) => {
                 health: hasHealth,
             }
 
-            res.status(200).json({data});
+            res.status(200).json({ data });
+
         }
 
-    } catch(error) {
+    } catch (error) {
         console.error(error);
     }
 });
@@ -232,7 +236,7 @@ app.get("/api/athlete-info/:athleteId", verifyToken, async (req, res) => {
         const snapshot = await athleteGoalsRef.get();
         const active = [];
         const inactive = [];
-        const hasGoals = (true);
+        let hasGoals = (true);
         if(snapshot.empty) {
             hasGoals = false;
         } else {
@@ -408,7 +412,19 @@ app.post("/api/newReport", verifyToken, async (req, res) => {
         const coachRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
         const athleteRef = admin.firestore().collection('users').doc(req.body.athleteUid).collection('reports');
 
-        let newReport = { athleteUid: req.body.athleteUid, reportType: req.body.reportType, dateCreated: new Date().toISOString(), coachUid: req.decodedToken.uid }
+        const athleteAcc = admin.firestore().collection('users').doc(req.body.athleteUid);
+        const doc = await athleteAcc.get();
+        const dateOfBirth = new Date(doc.data().DOB);
+        const today = new Date();
+
+        let age = today.getFullYear() - dateOfBirth.getFullYear();
+        const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+
+        if(monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+            age--
+        }
+
+        let newReport = { athleteUid: req.body.athleteUid, reportType: req.body.reportType, dateCreated: new Date().toISOString(), coachUid: req.decodedToken.uid, athleteAge: age }
         switch (req.body.reportType) {
             case 'hitting':
                 newReport = {
