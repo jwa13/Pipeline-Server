@@ -52,21 +52,24 @@ app.get("/api/home", verifyToken, async (req, res) => {
             const qr = reportRef.orderBy("dateCreated", "desc").limit(1);
             const snapshot = await qr.get();
 
-            let athleteName = "";
-            let coachName = "";
+            let recentReport = null;
 
-            const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
-            const doc = await athleteRef.get();
-            athleteName = doc.data().firstName + " " + doc.data().lastName;
+            if (snapshot.docs.length > 0) {
+                let athleteName = "";
+                let coachName = "";
 
-            const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
-            const doc2 = await coachRef.get();
-            coachName = doc2.data().firstName + " " + doc2.data().lastName;
+                const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
+                const doc = await athleteRef.get();
+                athleteName = doc.data().firstName + " " + doc.data().lastName;
 
-            const recentReport = {report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName};
+                const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
+                const doc2 = await coachRef.get();
+                coachName = doc2.data().firstName + " " + doc2.data().lastName;
 
+                recentReport = { report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName };
+            }
             let hasHealth = false;
-            if(doc.data().healthInfo) {
+            if (doc.data().healthInfo) {
                 hasHealth = true;
             }
 
@@ -76,10 +79,11 @@ app.get("/api/home", verifyToken, async (req, res) => {
                 health: hasHealth,
             }
 
-            res.status(200).json({data});
+            res.status(200).json({ data });
+
         }
 
-    } catch(error) {
+    } catch (error) {
         console.error(error);
     }
 });
