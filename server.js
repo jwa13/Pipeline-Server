@@ -328,6 +328,26 @@ app.post("/api/login", async (req, res) => {
 
         const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '1h'});
 
+        if (accType === 'athlete') {
+            const goalRef = admin.firestore().collection('users').doc(decodedToken.uid).collection('goals');
+            const snapshot = await goalRef.where('active', '==', true).get();
+            const today = new Date();
+
+            if (!snapshot.empty) {
+                const updatePromises = snapshot.docs.map(async (goalDoc) => {
+                    const goalData = goalDoc.data();
+                    const target = new Date(goalData.targetCompletion);
+                    const todayStart = new Date(today);
+                    todayStart.setHours(0,0,0,0);
+
+                    if(target < todayStart) {
+                        await goalRef.doc(goalDoc.id).update({active: false});
+                    }
+                });
+                await Promise.all(updatePromises);
+            }
+        }
+
         res.json({token: jwtToken});
     } catch (error) {
         console.error(error);
