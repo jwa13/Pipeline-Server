@@ -342,7 +342,7 @@ app.post("/api/login", async (req, res) => {
                     todayStart.setHours(0,0,0,0);
 
                     if(target < todayStart) {
-                        await goalRef.doc(goalDoc.id).update({active: false});
+                        await goalRef.doc(goalDoc.id).update({active: false, status: 'expired', achieved: goalData.targetCompletion});
                     }
                 });
                 await Promise.all(updatePromises);
