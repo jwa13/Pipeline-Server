@@ -44,9 +44,9 @@ app.get("/api/home", verifyToken, async (req, res) => {
             const q = goalRef.where('active', '==', true);
             const goalSnapshot = await q.get();
             const goals = [];
-            goalSnapshot.forEach((doc) => {
-                let goal = doc.data();
-                goals.push({id: goal.id, goal});
+            goalSnapshot.forEach((item) => {
+                let goal = item.data();
+                goals.push({id: item.id, goal});
             });
 
             const reportRef = userRef.collection('reports');
@@ -73,7 +73,7 @@ app.get("/api/home", verifyToken, async (req, res) => {
             if (doc.data().healthInfo) {
                 hasHealth = true;
             }
-
+            console.log(goals);
             const data = {
                 goals: goals,
                 recentReport: recentReport,
