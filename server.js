@@ -82,7 +82,33 @@ app.get("/api/home", verifyToken, async (req, res) => {
 
             res.status(200).json({ data });
 
-        }
+        } else if (doc.data().accType === 'coach') {
+            const reportRef = userRef.collection('reports');
+            const query = reportRef.orderBy('dateCreated', 'desc').limit(1);
+            const snapshot = await query.get();
+
+            let athleteName = "";
+            let coachName = "";
+
+            const athleteRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().athleteUid);
+            const doc = await athleteRef.get();
+            athleteName = doc.data().firstName + " " + doc.data().lastName;
+
+            const coachRef = admin.firestore().collection('users').doc(snapshot.docs[0].data().coachUid);
+            const doc2 = await coachRef.get();
+            coachName = doc2.data().firstName + " " + doc2.data().lastName;
+
+            const recentReport = { report: snapshot.docs[0].data(), athleteName: athleteName, coachName: coachName };
+
+            const usersRef = admin.firestore().collection('users');
+            const usersQuery = usersRef.where('accType', '==', 'athlete');
+            const usersSnapshot = await usersQuery.get();
+            const numberOfAthletes = usersSnapshot.size;
+
+            const responseData = {recentReport, numberOfAthletes};
+
+            res.status(200).json({responseData});
+        } 
 
     } catch (error) {
         console.error(error);
