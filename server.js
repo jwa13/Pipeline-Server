@@ -44,8 +44,9 @@ app.get("/api/home", verifyToken, async (req, res) => {
             const q = goalRef.where('active', '==', true);
             const goalSnapshot = await q.get();
             const goals = [];
-            goalSnapshot.forEach((goal) => {
-                goals.push(goal.data());
+            goalSnapshot.forEach((item) => {
+                let goal = item.data();
+                goals.push({id: item.id, goal});
             });
 
             const reportRef = userRef.collection('reports');
@@ -72,7 +73,7 @@ app.get("/api/home", verifyToken, async (req, res) => {
             if (doc.data().healthInfo) {
                 hasHealth = true;
             }
-
+            console.log(goals);
             const data = {
                 goals: goals,
                 recentReport: recentReport,
@@ -153,10 +154,10 @@ app.get("/api/goals", verifyToken, async (req, res) => {
             snapshot.forEach(doc => {
                 if(doc.data().active == true) {
                     let goal = doc.data();
-                    active.push(goal);
+                    active.push({id: doc.id, goal});
                 } else if(doc.data().active == false) {
                     let goal = doc.data();
-                    inactive.push(goal);
+                    inactive.push({id: doc.id, goal});
                 }
             });
             res.status(200).json({active, inactive});
@@ -243,10 +244,10 @@ app.get("/api/athlete-info/:athleteId", verifyToken, async (req, res) => {
             snapshot.forEach(doc => {
                 if(doc.data().active == true) {
                     let goal = doc.data();
-                    active.push(goal);
+                    active.push({id: doc.id, goal});
                 } else if(doc.data().active == false) {
                     let goal = doc.data();
-                    inactive.push(goal);
+                    inactive.push({id: doc.id, goal});
                 }
             })
         }
@@ -327,6 +328,26 @@ app.post("/api/login", async (req, res) => {
         // console.log(accType);
 
         const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '1h'});
+
+        if (accType === 'athlete') {
+            const goalRef = admin.firestore().collection('users').doc(decodedToken.uid).collection('goals');
+            const snapshot = await goalRef.where('active', '==', true).get();
+            const today = new Date();
+
+            if (!snapshot.empty) {
+                const updatePromises = snapshot.docs.map(async (goalDoc) => {
+                    const goalData = goalDoc.data();
+                    const target = new Date(goalData.targetCompletion);
+                    const todayStart = new Date(today);
+                    todayStart.setHours(0,0,0,0);
+
+                    if(target < todayStart) {
+                        await goalRef.doc(goalDoc.id).update({active: false, status: 'expired', achieved: goalData.targetCompletion});
+                    }
+                });
+                await Promise.all(updatePromises);
+            }
+        }
 
         res.json({token: jwtToken});
     } catch (error) {
@@ -539,6 +560,22 @@ app.post("/api/newHealth", verifyToken, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(400).json({message: 'Database or server error'});
+    }
+});
+
+app.post("/api/completeGoal/:goalId", verifyToken, async (req, res) => {
+    try {
+        const goalRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('goals').doc(req.params.goalId);
+        const goalSnapshot = await goalRef.get();
+        if(goalSnapshot.exists) {
+            await goalRef.update({active: false, status: 'achieved', achieved: new Date().toISOString()});
+            res.status(200).json({message: 'Goal Achieved!'});
+        } else {
+            res.status(400).json({message: 'Goal not found'});
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message: 'Internal Server Error'});
     }
 });
 
