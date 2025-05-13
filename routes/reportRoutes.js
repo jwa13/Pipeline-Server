@@ -4,6 +4,31 @@ const { verifyToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+const getAverage = (ratings, subset) => {
+    let average;
+    if(subset === 'infield' || 'outfield') {
+        let total = Number(ratings.Footwork) + Number(ratings.Glovework) + Number(ratings['Arm Strength']) + Number(ratings['Range/Routes/Speed']);
+        average = Math.round(total / 4);
+        return average;
+    } else if(subset === 'throwing') {
+        let total = Number(ratings.Mechanics) + Number(ratings['Arm Path']) + Number(ratings['Arm Strength']) + Number(ratings.Accuracy);
+        average = Math.round(total / 4);
+        return average;
+    } else if(subset === 'hitting') {
+        let total = Number(ratings.Contact) + Number(ratings.Power) + Number(ratings.Consistency) + Number(ratings['Barrel Control']) + Number(ratings.Mechanics);
+        average = Math.round(total / 5);
+        return average;
+    } else if(subset === 'pitching') {
+        let total = Number(ratings['Upper Body Mechanics']) + Number(ratings['Lower Body Mechanics']) + Number(ratings['Arm Path']);
+        average = Math.round(total / 3);
+        return average;
+    } else if(subset === 'catching') {
+        let total = Number(ratings.Recieving) + Number(ratings.Blocking) + Number(ratings['Ball Handling']) + Number(ratings['Throwing Footwork']) + Number(ratings['Arm Strength']);
+        average = Math.round(total / 5);
+        return average;
+    }
+}
+
 router.get("/api/recentReport", verifyToken, async (req, res) => {
     try {
         const userRef = admin.firestore().collection('users').doc(req.decodedToken.uid).collection('reports');
@@ -128,29 +153,41 @@ router.post("/api/newReport", verifyToken, async (req, res) => {
                 }
                 break;
             case 'skills':
+                let infieldAverage = getAverage(req.body.infieldRatings, 'infield');
+                let outfieldAverage = getAverage(req.body.outfieldRatings, 'outfield');
+                let throwingAverage = getAverage(req.body.throwingRatings, 'throwing');
+                let hittingAverage = getAverage(req.body.hittingRatings, 'hitting');
                 newReport = {
                     ...newReport,
                     infieldRatings: req.body.infieldRatings,
+                    infieldAverage: infieldAverage,
                     infieldNotes: req.body.infieldNotes,
                     outfieldRatings: req.body.outfieldRatings,
+                    outfieldAverage: outfieldAverage,
                     outfieldNotes: req.body.outfieldNotes,
                     throwingRatings: req.body.throwingRatings,
+                    throwingAverage: throwingAverage,
                     throwingNotes: req.body.throwingNotes,
                     hittingRatings: req.body.hittingRatings,
+                    hittingAverage: hittingAverage,
                     hittingNotes: req.body.hittingNotes,
                 }
                 if (req.body.pitchingNotes) {
+                    let pitchingAverage = getAverage(req.body.pitchingRatings, 'pitching');
                     newReport = {
                         ...newReport,
                         pitchingRatings: req.body.pitchingRatings,
+                        pitchingAverage: pitchingAverage,
                         pitchingNotes: req.body.pitchingNotes,
                         pitchMetrics: req.body.pitchMetrics,
                     }
                 }
                 if (req.body.catchingNotes) {
+                    let catchingAverage = getAverage(req.body.catchingRatings, 'catching');
                     newReport = {
                         ...newReport,
                         catchingRatings: req.body.catchingRatings,
+                        catchingAverage: catchingAverage,
                         catchingNotes: req.body.catchingNotes,
                     }
                 }
