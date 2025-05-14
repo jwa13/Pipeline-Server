@@ -6,7 +6,7 @@ const router = express.Router();
 
 const getAverage = (ratings, subset) => {
     let average;
-    if(subset === 'infield' || 'outfield') {
+    if(subset === 'infield' || subset === 'outfield') {
         let total = Number(ratings.Footwork) + Number(ratings.Glovework) + Number(ratings['Arm Strength']) + Number(ratings['Range/Routes/Speed']);
         average = Math.round(total / 4);
         return average;
