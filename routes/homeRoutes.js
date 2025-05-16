@@ -78,7 +78,9 @@ router.get("/api/home", verifyToken, async (req, res) => {
             const responseData = {recentReport, numberOfAthletes};
 
             res.status(200).json({responseData});
-        } 
+        } else {
+            res.status(303).json({message: 'Account type missing. Client should redirect to New User Form'});
+        }
 
     } catch (error) {
         console.error(error);

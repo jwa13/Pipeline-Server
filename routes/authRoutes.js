@@ -20,7 +20,7 @@ router.post("/api/signup", async (req, res) => {
             await userRef.set({email, createdAt: new Date().toISOString()});
         }
 
-        const jwtToken = jwt.sign({uid, email}, process.env.JWT_SECRET, {expiresIn: '1h'});
+        const jwtToken = jwt.sign({uid, email}, process.env.JWT_SECRET, {expiresIn: '6h'});
 
         res.json({token: jwtToken});
     } catch (error) {
@@ -41,7 +41,7 @@ router.post("/api/login", async (req, res) => {
         const accType = doc.data().accType;
         // console.log(accType);
 
-        const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '1h'});
+        const jwtToken = jwt.sign({uid, email, accType}, process.env.JWT_SECRET, {expiresIn: '6h'});
 
         if (accType === 'athlete') {
             const goalRef = admin.firestore().collection('users').doc(decodedToken.uid).collection('goals');
